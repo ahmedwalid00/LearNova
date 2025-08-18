@@ -64,7 +64,7 @@ class Teacher(BaseModel):
 
 class Parent(BaseModel):
 	__tablename__ = "parents"
-	parent_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+	parent_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False, index=True)
 	name = Column(String(255), nullable=False)
 	email = Column(String(255), nullable=False, unique=True, index=True)
 	password_hash = Column(String(255), nullable=False)
@@ -84,7 +84,7 @@ class Parent(BaseModel):
 
 class Admin(BaseModel):
 	__tablename__ = "admins"
-	admin_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+	admin_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False, index=True)
 	name = Column(String(255), nullable=False)
 	email = Column(String(255), nullable=False, unique=True, index=True)
 	password_hash = Column(String(255), nullable=False)

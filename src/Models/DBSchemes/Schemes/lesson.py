@@ -36,7 +36,7 @@ class LessonChunk(BaseModel):
 	lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.lesson_id"), nullable=False, index=True)
 	chunk_number = Column(Integer, nullable=False)
 	chunk_text = Column(Text, nullable=False)
-	metadata = Column(JSONB, nullable=True)
+	chunk_metadata = Column(JSONB, nullable=True)
 
 	# Relationships
 	lesson = relationship("Lesson", back_populates="chunks", lazy="select")
