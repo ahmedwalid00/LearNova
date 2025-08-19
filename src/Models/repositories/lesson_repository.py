@@ -146,6 +146,48 @@ class LessonChunkRepository(BaseRepository[LessonChunk]):
             .where(LessonChunk.lesson_id == lesson_id)
         )
         return result.scalar()
+
+    async def insert_many_chunks(self, chunks: List[LessonChunk], batch_size: int = 100) -> List[LessonChunk]:
+        """
+        Insert many LessonChunk instances in batches.
+        
+        Args:
+            chunks: List of LessonChunk instances to insert
+            batch_size: Number of records per batch (default 100)
+            
+        Returns:
+            List of created LessonChunk instances
+            
+        Raises:
+            ValueError: If chunks is invalid or contains non-LessonChunk instances
+        """
+        if not chunks:
+            return []
+        
+        if batch_size <= 0 or batch_size > 1000:
+            raise ValueError("batch_size must be between 1 and 1000")
+        
+        # Validate all items are LessonChunk instances
+        for idx, chunk in enumerate(chunks):
+            if not isinstance(chunk, LessonChunk):
+                raise ValueError(f"Item at index {idx} is not a LessonChunk instance")
+
+        created: List[LessonChunk] = []
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
+            self.session.add_all(batch)
+            await self.session.flush()   # send INSERTs without committing
+            for inst in batch:
+                try:
+                    await self.session.refresh(inst)
+                except Exception:
+                    pass  # Best effort refresh
+            created.extend(batch)
+
+        return created
+  
+
+
     
     def get_model_specific_methods(self):
         """Return list of lesson chunk-specific methods."""
@@ -153,5 +195,6 @@ class LessonChunkRepository(BaseRepository[LessonChunk]):
             "get_by_lesson_id",
             "get_by_chunk_number",
             "get_chunks_with_metadata",
-            "get_chunk_count_for_lesson"
+            "get_chunk_count_for_lesson",
+            "insert_many_chunks"
         ]
