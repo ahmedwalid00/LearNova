@@ -34,7 +34,9 @@ class BaseRepository(Generic[ModelType], ABC):
         Args:
             session: Async SQLAlchemy session
             model: SQLAlchemy model class
+            
         """
+        
         self.session = session
         self.model = model
     
@@ -47,12 +49,20 @@ class BaseRepository(Generic[ModelType], ABC):
             
         Returns:
             The created model instance
+            
+        Raises:
+            ValueError: If data violates constraints or is invalid
         """
-        instance = self.model(**kwargs)
-        self.session.add(instance)
-        await self.session.commit()
-        await self.session.refresh(instance)
-        return instance
+        try:
+            instance = self.model(**kwargs)
+            self.session.add(instance)
+            await self.session.flush()  # Flush to get DB-generated values without committing
+            await self.session.refresh(instance)
+            return instance
+        except Exception as e:
+            # Let get_db_session handle rollback - don't rollback here
+            raise ValueError(f"Failed to create {self.model.__name__}: {str(e)}")
+    
     
     async def get_by_id(self, record_id: UUID) -> Optional[ModelType]:
         """
@@ -68,6 +78,7 @@ class BaseRepository(Generic[ModelType], ABC):
             select(self.model).where(self._get_id_field() == record_id)
         )
         return result.scalar_one_or_none()
+    
     
     async def get_all(
         self, 
@@ -126,7 +137,7 @@ class BaseRepository(Generic[ModelType], ABC):
         
         updated_instance = result.scalar_one_or_none()
         if updated_instance:
-            await self.session.commit()
+            await self.session.flush()  # Flush to persist changes without committing
             await self.session.refresh(updated_instance)
         
         return updated_instance
@@ -144,7 +155,7 @@ class BaseRepository(Generic[ModelType], ABC):
         result = await self.session.execute(
             delete(self.model).where(self._get_id_field() == record_id)
         )
-        await self.session.commit()
+        await self.session.flush()  # Flush to persist deletion without committing
         return result.rowcount > 0
     
     async def exists(self, record_id: UUID) -> bool:

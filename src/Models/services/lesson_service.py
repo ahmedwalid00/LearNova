@@ -43,25 +43,21 @@ class LessonService:
         Returns:
             Dict with created lesson and chunks
         """
-        try:
-            # Create the lesson
-            lesson = await self.lesson_repo.create(**lesson_data)
-            
-            # Create chunks
-            chunks = []
-            for chunk_data in chunks_data:
-                chunk_data['lesson_id'] = lesson.lesson_id
-                chunk = await self.chunk_repo.create(**chunk_data)
-                chunks.append(chunk)
-            
-            return {
-                "lesson": lesson,
-                "chunks": chunks,
-                "total_chunks": len(chunks)
-            }
-        except Exception as e:
-            await self.session.rollback()
-            raise e
+        # Create the lesson
+        lesson = await self.lesson_repo.create(**lesson_data)
+        
+        # Create chunks
+        chunks = []
+        for chunk_data in chunks_data:
+            chunk_data['lesson_id'] = lesson.lesson_id
+            chunk = await self.chunk_repo.create(**chunk_data)
+            chunks.append(chunk)
+        
+        return {
+            "lesson": lesson,
+            "chunks": chunks,
+            "total_chunks": len(chunks)
+        }
     
     async def get_lesson_with_chunks(self, lesson_id: UUID) -> Optional[Dict[str, Any]]:
         """
@@ -196,5 +192,5 @@ class LessonService:
             
             return True
         except Exception:
-            await self.session.rollback()
+            # Let get_db_session handle transaction rollback
             return False

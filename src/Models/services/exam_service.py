@@ -68,7 +68,7 @@ class ExamService:
                 "total_students": len(results)
             }
         except Exception as e:
-            await self.session.rollback()
+            # Let get_db_session handle transaction rollback
             raise e
     
     async def submit_exam_result(
@@ -121,7 +121,7 @@ class ExamService:
                 "new_average": student_avg
             }
         except Exception as e:
-            await self.session.rollback()
+            # Let get_db_session handle transaction rollback
             raise e
     
     async def get_exam_analytics(self, exam_id: UUID) -> Dict[str, Any]:
