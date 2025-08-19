@@ -60,21 +60,21 @@ async def submit_exam_and_update_ratings(
 """
 # In your FastAPI router file:
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database.session import get_async_session
-from src.Models.repositories import StudentRepository
-from src.Models.services import UserService
+from src.Api.dependencies import get_db_session, get_user_service, get_lesson_service
+from src.Models.services import UserService, LessonService
 
 router = APIRouter()
 
+# Preferred approach: Use service dependencies
 @router.get("/students/{student_id}")
 async def get_student(
     student_id: UUID, 
-    session: AsyncSession = Depends(get_async_session)
+    user_service: UserService = Depends(get_user_service)
 ):
-    student_repo = StudentRepository(session)
-    student = await student_repo.get_by_id(student_id)
+    # Service handles all business logic and transactions
+    student = await user_service.get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
@@ -82,9 +82,9 @@ async def get_student(
 @router.post("/auth/login")
 async def login(
     credentials: LoginSchema,
-    session: AsyncSession = Depends(get_async_session)
+    user_service: UserService = Depends(get_user_service)
 ):
-    user_service = UserService(session)
+    # Service manages authentication across user types
     user_info = await user_service.authenticate_user(
         credentials.email, 
         credentials.password_hash
@@ -92,6 +92,20 @@ async def login(
     if not user_info:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return user_info
+
+# Alternative: Direct session injection (use only for simple operations)
+@router.get("/students/{student_id}/basic")
+async def get_student_basic(
+    student_id: UUID, 
+    session: AsyncSession = Depends(get_db_session)
+):
+    from src.Models.repositories import StudentRepository
+    
+    student_repo = StudentRepository(session)
+    student = await student_repo.get_by_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
 """
 
 
