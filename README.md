@@ -1,4 +1,3 @@
-
 # LearNova
 
 LearNova is an intelligent educational platform leveraging AI to deliver personalized content, dynamic assessment tools, and deep analytics for schools. The platform helps improve educational quality and provides actionable insights for students, teachers, and administrators.
@@ -26,32 +25,37 @@ LearNova is an intelligent educational platform leveraging AI to deliver persona
 ## Folder Structure
 ```
 src/
-	Api/
-		routers/
-		schemas/
-		Schemes/
-	Authorization/
-	Chatbot/
-	Controllers/
-	Helpers/
-	Models/
-		crud/
-		DBSchemes/
-			Schemes/
-				academic_term.py
-				term_week.py
-				user_models.py
-				subject.py
-				lesson.py
-				question_models.py
-				exam_models.py
-				analytics.py
-				associations.py
-	Tests/
-	utils/
+    Api/
+        routers/
+        utils.py
+        dependencies.py
+        Controllers/
+            auth_controller.py
+        Schemes/
+            token.py
+            user.py
+    Authorization/
+    Chatbot/
+    Controllers/
+    Helpers/
+    Models/
+        crud/
+        DBSchemes/
+            Schemes/
+                academic_term.py
+                term_week.py
+                user_models.py
+                subject.py
+                lesson.py
+                question_models.py
+                exam_models.py
+                analytics.py
+                associations.py
+    Tests/
+    utils/
 Docker/
-	docker-compose.yml
-	Dockerfile
+    docker-compose.yml
+    Dockerfile
 requirements.txt
 .env
 README.md
@@ -98,6 +102,17 @@ README.md
 - Access the API at `http://localhost:8000`
 - API docs available at `/docs`
 - All models, relationships, and indexes are implemented as per the provided schema.
+
+### Authentication & Authorization
+- Endpoints: `/auth/signup`, `/auth/login`, `/auth/logout`, `/auth/verify`, `/auth/reset-password`, `/auth/confirm-reset`, `/auth/token/access`, `/auth/token/refresh`
+- JWT-based access and refresh tokens (see `src/Api/utils.py`)
+- Security handled via `TokenBearer` (see `src/Api/dependencies.py`)
+- Passwords hashed with bcrypt/argon2
+- Repository/Service/Controller pattern for clean separation:
+  - Repositories: direct DB operations
+  - Services: business logic (auth, token generation, validation)
+  - Controllers: orchestrate logic between services & routes
+- Email verification and password reset are prototyped for future async integration (Celery)
 
 ## License
 This project is licensed under the MIT License.

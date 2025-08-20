@@ -79,6 +79,21 @@ class BaseRepository(Generic[ModelType], ABC):
         )
         return result.scalar_one_or_none()
     
+    async def get_by_unique_id(self, unique_id: str) -> Optional[ModelType]:
+        """
+        Retrieve a record by the model's 'unique_id' field.
+
+        Raises:
+            AttributeError: if the model has no 'unique_id' attribute.
+        """
+        if not hasattr(self.model, "unique_id"):
+            raise AttributeError(f"Model {self.model.__name__} has no 'unique_id' attribute")
+
+        result = await self.session.execute(
+            select(self.model).where(getattr(self.model, "unique_id") == unique_id)
+        )
+        return result.scalar_one_or_none()
+    
     
     async def get_all(
         self, 

@@ -8,7 +8,7 @@ operations involving multiple user types and repositories.
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
-from ..Enums.user_type_enums import UserTypeEnum
+from src.Enums.user_type_enums import UserTypeEnum
 
 from ..repositories.user_repository import (
     StudentRepository, 
@@ -27,15 +27,7 @@ class UserService:
     """
     
     def __init__(self, session: AsyncSession):
-        """
-        Initialize the service with database session.
-        
-        Raises:
-            ValueError: If session is None
-        """
-        if session is None:
-            raise ValueError("Session cannot be None")
-            
+        """Initialize the service with database session."""
         self.session = session
         self.student_repo = StudentRepository(session)
         self.teacher_repo = TeacherRepository(session)
@@ -52,15 +44,7 @@ class UserService:
             
         Returns:
             Dict with user info and type, or None if not found
-            
-        Raises:
-            ValueError: If email or password_hash is empty
         """
-        if not email or not email.strip():
-            raise ValueError("Email cannot be empty")
-        if not password_hash or not password_hash.strip():
-            raise ValueError("Password hash cannot be empty")
-        
         email = email.strip().lower()  # Normalize email
         # Check students
         student = await self.student_repo.get_by_email(email)
