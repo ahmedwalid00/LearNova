@@ -114,5 +114,10 @@ README.md
   - Controllers: orchestrate logic between services & routes
 - Email verification and password reset are prototyped for future async integration (Celery)
 
+### Unique IDs & Parent Flow
+- Users have human-readable, role-based `unique_id` values stored on user tables (e.g., students `22xxx`, teachers `11xxx`, parents `P22xxx`, admins `ADMINxxx`).
+- Admins generate/assign student and teacher IDs. Parents register using a temporary admin-provided access code and are linked to students via the `parent_student_links` table.
+- See `src/Models/DBSchemes/Schemes/user_models.py` and `src/Models/DBSchemes/Schemes/parent_student_association.py` for schema details.
+
 ## License
 This project is licensed under the MIT License.
