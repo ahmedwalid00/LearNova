@@ -36,7 +36,6 @@ class ParentStudentLink(BaseModel):
     link_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, nullable=False, index=True)
     parent_id = Column(UUID(as_uuid=True), ForeignKey("parents.parent_id"), nullable=False, index=True)
     student_id = Column(UUID(as_uuid=True), ForeignKey("students.student_id"), nullable=False, index=True)
-    relationship_type = Column(String(50), default="parent", nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     

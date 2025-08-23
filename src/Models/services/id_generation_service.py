@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from src.Enums.user_type_enums import UserIDPrefix
+from src.Enums.user_type_enums import UserIDPrefix , UserTypeEnum
 
 
 
@@ -110,12 +110,12 @@ class IDGenerationService:
     def get_user_role_from_id(unique_id: str) -> str:
         """Determine user role from unique ID pattern"""
         if unique_id.startswith(UserIDPrefix.STUDENT.value):
-            return UserIDPrefix.STUDENT.value
+            return UserTypeEnum.STUDENT.value
         elif unique_id.startswith(UserIDPrefix.TEACHER.value):
-            return UserIDPrefix.TEACHER.value
+            return UserTypeEnum.TEACHER.value
         elif unique_id.startswith(UserIDPrefix.ADMIN.value) or unique_id.startswith("SUPER"):
-            return UserIDPrefix.ADMIN.value
+            return UserTypeEnum.ADMIN.value
         elif unique_id.startswith(UserIDPrefix.PARENT.value):
-            return UserIDPrefix.PARENT.value
+            return UserTypeEnum.PARENT.value
         else:
             raise ValueError(f"Invalid unique ID format: {unique_id}")

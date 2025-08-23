@@ -13,7 +13,7 @@ class Student(BaseModel):
 	is_verified = Column(Boolean, default=False)
 	password_hash = Column(String(255), nullable=False)
 	rating = Column(DECIMAL, nullable=True)
-	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=False, index=True)
+	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=True, index=True)
 	term_id = Column(UUID(as_uuid=True), ForeignKey("academic_terms.term_id"), nullable=True, index=True)
 
 	# Relationships

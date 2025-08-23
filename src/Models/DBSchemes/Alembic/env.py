@@ -32,6 +32,28 @@ from src.Models.DBSchemes.Schemes import (
 )
 target_metadata = BaseModel.metadata
 
+# Load application settings so migrations use the same DB credentials
+try:
+    # import here to avoid heavy imports earlier
+    from src.Helpers.config import get_settings
+    settings = get_settings()
+
+    # Build a sync URL for Alembic (alembic runs synchronously). If the
+    # application uses asyncpg (postgresql+asyncpg) for runtime, Alembic
+    # should still use a sync driver (psycopg2) for migrations.
+    sync_url = (
+        f"postgresql+psycopg2://{settings.POSTGRES_USERNAME}:"
+        f"{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:"
+        f"{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
+    )
+
+    # Override the url from alembic.ini with our computed one
+    config.set_main_option("sqlalchemy.url", sync_url)
+except Exception:
+    # If settings cannot be loaded (for some edge cases), fall back to
+    # the URL already present in alembic.ini
+    pass
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")

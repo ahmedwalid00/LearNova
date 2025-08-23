@@ -15,6 +15,8 @@ class Exam(BaseModel):
 	# Relationships
 	teacher = relationship("Teacher", back_populates="exams", lazy="select")
 	term = relationship("AcademicTerm", back_populates="exams", lazy="select")
+	# Question relationship
+	question_exams = relationship("QuestionExam", back_populates="exam", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="exam", lazy="select")
 
 	__table_args__ = (

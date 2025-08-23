@@ -9,3 +9,5 @@ class SignalResponse(Enum):
     EMAIL_ALREADY_REGISTERED = "Email already registered"
     ID_DOESNT_MATCH_ROLE = "User ID does not match role"
     UNIQUE_ID_ALREADY_REGISTERED = "ID already registered"
+    INVALID_USER_TYPE = "Invalid user type"
+    

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPBearer, HTTPAuthorizationCredentials, Request
+from fastapi import Depends, Request , status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.Api.utils import JWTHandler 
 from src.Helpers.db_session import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,14 @@ class TokenBearer(HTTPBearer):
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
         self.verify_token_data(token_data)
+
+        if await JWTHandler.is_token_in_blocklist(token_data['jti']):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail={
+                    "error":"This token is invalid or has been revoked",
+                    "resolution":"Please get new token"
+                }
+            )
 
         return token_data
 
