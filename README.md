@@ -85,7 +85,7 @@ README.md
 6. Start the PostgreSQL database using Docker Compose:
 	```bash
 	cd Docker
-	docker-compose up -d db
+    docker-compose up -d db redis
 	```
 7. Run Alembic migrations to initialize the database tables:
 	```bash
@@ -98,13 +98,17 @@ README.md
 	uvicorn src.main:app --reload
 	```
 
+Additional notes
+- Redis: We use Redis for caching and token blocklisting. When running with Docker Compose the service name is `redis` and the app expects `REDIS_HOST=redis` in the `.env` file. If you run the app locally (not in compose), use `REDIS_HOST=localhost`.
+- Email: The project uses an aiosmtplib-based sender. Configure `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_FROM` in your `.env` to enable sending verification and reset emails.
+
 ## Usage
 - Access the API at `http://localhost:8000`
 - API docs available at `/docs`
 - All models, relationships, and indexes are implemented as per the provided schema.
 
 ### Authentication & Authorization
-- Endpoints: `/auth/signup`, `/auth/login`, `/auth/logout`, `/auth/verify`, `/auth/reset-password`, `/auth/confirm-reset`, `/auth/token/access`, `/auth/token/refresh`
+- Endpoints: `/api/v1/auth/sign-up`, `/api/v1/auth/login`, `/api/v1/auth/logout`, `/api/v1/auth/verify-email`, `/api/v1/auth/request-password-reset`, `/api/v1/auth/confirm-password-reset`, `/api/v1/auth/refresh_token`
 - JWT-based access and refresh tokens (see `src/Api/utils.py`)
 - Security handled via `TokenBearer` (see `src/Api/dependencies.py`)
 - Passwords hashed with bcrypt/argon2
