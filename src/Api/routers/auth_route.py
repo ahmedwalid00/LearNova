@@ -1,16 +1,14 @@
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.Api.Schemes import user
+from src.Api.utils import JWTHandler
 from src.Helpers.db_session import get_db_session
-from ..Schemes.auth_schemes import UserSignUpModel 
-from src.Models.repositories.user_repository import StudentRepository, TeacherRepository , ParentRepository
-from src.Enums.signal_response import SignalResponse
-from src.Enums.user_type_enums import UserTypeEnum
-from src.Models.services.id_generation_service import IDGenerationService
-from ..utils import PasswordHandler
+from ..Schemes.auth_schemes import UserSignUpModel, UserLoginModel, PasswordResetRequestModel, PasswordResetConfirmModel
+from src.Controllers.auth_controller import AuthController
+from ..dependencies import AccessTokenBearer , RefreshTokenBearer   
+from src.email import create_message, mail
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 import logging
@@ -23,61 +21,156 @@ auth_router = APIRouter(prefix="/api/v1/auth",
 
 @auth_router.post("/sign-up")
 async def sign_up(user_data: UserSignUpModel, session: AsyncSession = Depends(get_db_session)):
-    email = user_data.email.lower()
-    first_name = user_data.first_name
-    last_name = user_data.last_name
-    user_unique_id = user_data.user_unique_id
-    user_type = user_data.user_type
-    password = user_data.password
-    confirm_password = user_data.confirm_password
-
-    expected_user = IDGenerationService.get_user_role_from_id(unique_id=user_unique_id)
-    if expected_user != user_type:
-        logger.error(f"User type mismatch: expected {expected_user}, got {user_type}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SignalResponse.ID_DOESNT_MATCH_ROLE.value)
+    """
+    Register a new user account.
     
-    if user_type == UserTypeEnum.ADMIN.value:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin accounts cannot self-register")
+    This endpoint handles user registration for students, teachers, and parents.
+    Admin accounts cannot self-register and must be created through admin processes.
+    """
+    auth_controller = AuthController(session)
+    result = await auth_controller.signup_user(user_data)
+    _ = await auth_controller.send_verification_email(
+        user_email=user_data.email,
+        user_name=user_data.name,
+        unique_id=user_data.user_unique_id
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED, 
+        content=result
+    )
+
+
+@auth_router.post("/login")
+async def login(login_data: UserLoginModel, session: AsyncSession = Depends(get_db_session)):
+    """
+    Authenticate a user and return access tokens.
     
-    if user_type == UserTypeEnum.STUDENT.value:
-        user_repo = StudentRepository(session)
-    elif user_type == UserTypeEnum.TEACHER.value:
-        user_repo = TeacherRepository(session)
-    elif user_type == UserTypeEnum.PARENT.value:
-        user_repo = ParentRepository(session)
-
-    check_email = await user_repo.get_user_by_email(email=email)
-    if check_email:
-        logger.error(f"Email already registered: {email}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SignalResponse.EMAIL_ALREADY_REGISTERED.value)
-
-    check_unique_id = await user_repo.get_user_by_unique_id(unique_id=user_unique_id)
-    if check_unique_id:
-        logger.error(f"Unique ID already registered: {user_unique_id}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SignalResponse.UNIQUE_ID_ALREADY_REGISTERED.value)
-
-    if password != confirm_password:
-        logger.error("Passwords do not match")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=SignalResponse.PASSWORD_NOT_MATCH.value)
-
-    combined_name = f"{first_name} {last_name}"
-
-    hashed_password = PasswordHandler.hash_password(password)
-
-    new_user = user_repo.create_user(email=email,
-                                    name=combined_name,
-                                    password_hash=hashed_password,
-                                    unique_id=user_unique_id)
+    This endpoint authenticates users using their unique_id and password,
+    then returns JWT tokens for accessing protected resources.
+    """
+    auth_controller = AuthController(session)
+    result = await auth_controller.login_user(login_data.unique_id, login_data.password)
     
-    #TODO : email verification logic
-    # Celery to Handle the email verification
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=result
+    )
 
-    user_out = {
-        "id": getattr(new_user, "id", None),
-        "unique_id": getattr(new_user, "unique_id", None),
-        "email": getattr(new_user, "email", None),
-        "name": getattr(new_user, "name", None),
-    }
 
-    return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": SignalResponse.SIGNUP_SUCCESS.value,
-                                                                      "user": user_out})
+
+@auth_router.get("/verify-email")
+async def verify_email(
+    token: str = Query(..., description="Email verification token"),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Verify user email using verification token.
+    
+    This endpoint is called when users click the verification link in their email.
+    It validates the token and marks the user's email as verified.
+    """
+    auth_controller = AuthController(session)
+    result = await auth_controller.verify_email(token)
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=result
+    )
+
+
+@auth_router.post("/request-password-reset")
+async def request_password_reset(
+    reset_data: PasswordResetRequestModel,
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Request password reset for a user.
+    
+    This endpoint sends a password reset email to the user with a secure reset link.
+    The user can then use this link to set a new password.
+    """
+    auth_controller = AuthController(session)
+    result = await auth_controller.request_password_reset(reset_data.email)
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=result
+    )
+
+
+@auth_router.post("/confirm-password-reset")
+async def confirm_password_reset(
+    reset_data: PasswordResetConfirmModel,
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Confirm password reset using reset token.
+    
+    This endpoint is used to complete the password reset process.
+    It validates the reset token and updates the user's password.
+    """
+    auth_controller = AuthController(session)
+    result = await auth_controller.confirm_password_reset(
+        token=reset_data.token,
+        new_password=reset_data.new_password,
+        confirm_password=reset_data.confirm_password
+    )
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=result
+    )
+
+
+@auth_router.get('/logout')
+async def revoke_token(token_details:dict=Depends(AccessTokenBearer())):
+    try:
+        jti = token_details['jti']
+
+        _ =  JWTHandler.add_jti_to_blocklist(jti)
+
+        return JSONResponse(
+            content={
+                "message":"Logged Out Successfully"
+            },
+            status_code=status.HTTP_200_OK
+        )
+    except Exception as e:
+        logger.error(f"Error logging out: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Internal Server Error"}
+        )
+    
+@auth_router.get("/refresh_token")
+async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer())):
+    expiry_timestamp = token_details["exp"]
+
+    if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
+        new_access_token = JWTHandler.create_access_token(user_data=token_details["user"])
+
+        return JSONResponse(content={"access_token": new_access_token})
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error": "Token has expired"}
+        )
+
+
+@auth_router.post("/send_mail")
+async def send_mail():
+    emails = ["ahmed.walid5@msa.edu.eg"]
+
+    html = "<h1>Welcome to the app</h1>"
+    subject = "Welcome to our app"
+
+    message = create_message(recipients=emails, subject=subject, body=html)
+    await mail.send_message(message)
+
+    return {"message": "Email sent successfully"}
+
+
+
+
+
