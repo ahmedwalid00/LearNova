@@ -78,9 +78,10 @@ README.md
 	source .venv/bin/activate
 	```
 4. Install dependencies:
-	```bash
-	uv pip install -r requirements.txt
-	```
+    ```bash
+    # If running locally (not Docker), install from src/requirements.txt
+    uv pip install -r src/requirements.txt
+    ```
 5. Copy `.env.example` to `.env` and update environment variables as needed.
 6. Start the PostgreSQL database using Docker Compose:
 	```bash
@@ -98,9 +99,28 @@ README.md
 	uvicorn src.main:app --reload
 	```
 
+### Run with Docker Compose (API + Celery)
+
+For a full local stack (API, DB, Redis, Celery worker/beat, Flower):
+
+1. Create `.env.docker` at repo root (see your existing `.env` as a guide). Ensure these are set at minimum:
+    - POSTGRES_*, REDIS_* variables
+    - CELERY_BROKER_URL, CELERY_RESULT_BACKEND (e.g., redis URLs)
+    - MAIL_* and DOMAIN if you plan to send emails
+2. From the `Docker` folder, start services:
+    ```bash
+    docker-compose up -d --build
+    ```
+3. Services:
+    - API: http://localhost:8000
+    - Flower (Celery dashboard): http://localhost:5555
+
+See CELERY_SETUP.md for details about queues, idempotency, and troubleshooting.
+
 Additional notes
 - Redis: We use Redis for caching and token blocklisting. When running with Docker Compose the service name is `redis` and the app expects `REDIS_HOST=redis` in the `.env` file. If you run the app locally (not in compose), use `REDIS_HOST=localhost`.
 - Email: The project uses an aiosmtplib-based sender. Configure `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_FROM` in your `.env` to enable sending verification and reset emails.
+- Celery: Email tasks are executed via Celery. The worker listens on `default,email_queue`. If running locally without Docker, start a worker: `celery -A src.celery_app worker --loglevel=info --queues=default,email_queue`. More in CELERY_SETUP.md.
 
 ## Usage
 - Access the API at `http://localhost:8000`
