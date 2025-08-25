@@ -17,8 +17,9 @@ from src.Enums.user_type_enums import UserTypeEnum
 from src.Models.services.id_generation_service import IDGenerationService
 from src.Api.utils import PasswordHandler, JWTHandler, TokenSerializer
 from src.Api.Schemes.auth_schemes import UserSignUpModel
-from src.email import create_message, mail
 from src.Helpers.config import get_settings
+# Import Celery tasks
+from src.Tasks.sending_email import send_verification_email, send_password_reset_email
 
 settings = get_settings()
 logger = logging.getLogger('uvicorn.error')
@@ -184,55 +185,50 @@ class AuthController:
             "name": getattr(user, "name", None),
         }
     
-    async def send_verification_email(self, user_email: str, user_name: str, unique_id: str) -> None:
+    def send_verification_email_async(self, user_email: str, user_name: str, unique_id: str) -> str:
         """
-        Send verification email to the user.
+        Queue verification email sending using Celery.
         
         Args:
             user_email: User's email address
             user_name: User's name
             unique_id: User's unique identifier
+            
+        Returns:
+            Task ID for tracking
         """
         try:
-            # Create verification token
-            token_data = {
-                "email": user_email,
-                "unique_id": unique_id,
-                "purpose": "email_verification"
-            }
-            verification_token = TokenSerializer.create_url_safe_token(token_data)
-            
-            # Create verification URL
-            verification_url = f"{settings.DOMAIN}/api/v1/auth/verify-email?token={verification_token}"
-            
-            # Create email content
-            subject = "Verify Your Email - LearNova"
-            html_content = f"""
-            <html>
-            <body>
-                <h2>Welcome to LearNova, {user_name}!</h2>
-                <p>Thank you for signing up. Please verify your email address by clicking the link below:</p>
-                <p><a href="{verification_url}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
-                <p>If the button doesn't work, copy and paste this link into your browser:</p>
-                <p>{verification_url}</p>
-                <p>This verification link will expire in 24 hours.</p>
-                <p>Best regards,<br>LearNova Team</p>
-            </body>
-            </html>
-            """
-            
-            # Send email
-            message = create_message(
-                recipients=[user_email],
-                subject=subject,
-                body=html_content
-            )
-            await mail.send_message(message)
-            logger.info(f"Verification email sent to {user_email}")
+            # Queue the email sending task
+            task = send_verification_email.delay(user_email, user_name, unique_id)
+            logger.info(f"Verification email task queued for {user_email}, task_id: {task.id}")
+            return task.id
             
         except Exception as e:
-            logger.error(f"Failed to send verification email to {user_email}: {str(e)}")
+            logger.error(f"Failed to queue verification email for {user_email}: {str(e)}")
             # Don't raise exception - email failure shouldn't block signup
+            return None
+
+    def send_password_reset_email_async(self, user_email: str, user_name: str, unique_id: str) -> str:
+        """
+        Queue password reset email sending using Celery.
+        
+        Args:
+            user_email: User's email address
+            user_name: User's name
+            unique_id: User's unique identifier
+            
+        Returns:
+            Task ID for tracking
+        """
+        try:
+            # Queue the email sending task
+            task = send_password_reset_email.delay(user_email, user_name, unique_id)
+            logger.info(f"Password reset email task queued for {user_email}, task_id: {task.id}")
+            return task.id
+            
+        except Exception as e:
+            logger.error(f"Failed to queue password reset email for {user_email}: {str(e)}")
+            return None
 
     async def verify_email(self, token: str) -> Dict[str, Any]:
         """
@@ -298,8 +294,19 @@ class AuthController:
                     "verified": True
                 }
             
-            # Update verification status
-            await user_repo.update(user, {"is_verified": True})
+            # Update verification status using primary key
+            user_pk = (
+                getattr(user, "student_id", None)
+                or getattr(user, "teacher_id", None)
+                or getattr(user, "parent_id", None)
+                or getattr(user, "admin_id", None)
+            )
+            if not user_pk:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Unable to determine user primary key",
+                )
+            await user_repo.update(user_pk, is_verified=True)
             logger.info(f"Email verified for user {unique_id}")
             
             return {
@@ -355,47 +362,17 @@ class AuthController:
                     detail="User not found"
                 )
             
-            # Create reset token
-            token_data = {
-                "email": email,
-                "unique_id": user.unique_id,
-                "purpose": "password_reset"
-            }
-            reset_token = TokenSerializer.create_url_safe_token(token_data)
-            
-            # Create reset URL
-            reset_url = f"{settings.DOMAIN}/api/v1/auth/confirm-password-reset?token={reset_token}"
-            
-            # Create email content
-            subject = "Reset Your Password - LearNova"
-            html_content = f"""
-            <html>
-            <body>
-                <h2>Password Reset Request</h2>
-                <p>Hello {user.name},</p>
-                <p>You requested to reset your password. Click the link below to set a new password:</p>
-                <p><a href="{reset_url}" style="background-color: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-                <p>If the button doesn't work, copy and paste this link into your browser:</p>
-                <p>{reset_url}</p>
-                <p>This reset link will expire in 1 hour.</p>
-                <p>If you didn't request this password reset, please ignore this email.</p>
-                <p>Best regards,<br>LearNova Team</p>
-            </body>
-            </html>
-            """
-            
-            # Send email
-            message = create_message(
-                recipients=[email],
-                subject=subject,
-                body=html_content
+            # Queue password reset email using Celery
+            task_id = self.send_password_reset_email_async(
+                user_email=email,
+                user_name=user.name,
+                unique_id=user.unique_id
             )
-            await mail.send_message(message)
-            logger.info(f"Password reset email sent to {email}")
             
             return {
                 "message": "Password reset email sent successfully",
-                "email": email
+                "email": email,
+                "task_id": task_id
             }
             
         except HTTPException:
@@ -470,8 +447,19 @@ class AuthController:
             # Hash new password
             hashed_password = PasswordHandler.hash_password(new_password)
             
-            # Update password
-            await user_repo.update(user, {"password_hash": hashed_password})
+            # Update password using primary key
+            user_pk = (
+                getattr(user, "student_id", None)
+                or getattr(user, "teacher_id", None)
+                or getattr(user, "parent_id", None)
+                or getattr(user, "admin_id", None)
+            )
+            if not user_pk:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Unable to determine user primary key",
+                )
+            await user_repo.update(user_pk, password_hash=hashed_password)
             logger.info(f"Password reset completed for user {unique_id}")
             
             return {
@@ -532,8 +520,8 @@ class AuthController:
             # Format response
             user_out = self._format_user_response(new_user)
             
-            # Send verification email
-            await self._send_verification_email(
+            # Queue verification email using Celery
+            task_id = self.send_verification_email_async(
                 user_email=email,
                 user_name=combined_name,
                 unique_id=user_data.user_unique_id
@@ -542,7 +530,8 @@ class AuthController:
             return {
                 "message": SignalResponse.SIGNUP_SUCCESS.value,
                 "user": user_out,
-                "verification_email_sent": True
+                "verification_email_queued": True,
+                "email_task_id": task_id
             }
             
         except Exception as e:

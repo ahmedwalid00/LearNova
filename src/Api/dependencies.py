@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from src.Models.services.authorization_service import AuthorizationService
 from src.Models.services.user_service import UserService
-
+from src.Enums.user_type_enums import UserTypeEnum
+from src.Models.services.id_generation_service import IDGenerationService
+from typing import List, Any
 
 class TokenBearer(HTTPBearer):
     def __init__(self, auto_error=True):
@@ -16,6 +18,7 @@ class TokenBearer(HTTPBearer):
 
     async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
         creds = await super().__call__(request)
+        redis_client = request.app.state.redis
 
         token = creds.credentials
 
@@ -26,7 +29,7 @@ class TokenBearer(HTTPBearer):
 
         self.verify_token_data(token_data)
 
-        if await JWTHandler.is_token_in_blocklist(token_data['jti']):
+        if await JWTHandler.is_token_in_blocklist(jti=token_data['jti'] , redis_client=redis_client):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail={
                     "error":"This token is invalid or has been revoked",
@@ -85,3 +88,19 @@ async def get_current_user(
                 return candidate
 
     raise HTTPException(status_code=401, detail="Could not resolve user from token")
+
+
+
+class RoleChecker:
+    def __init__(self, allowed_roles: List[str]) -> None:
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user = Depends(get_current_user)) -> Any:
+        if not current_user.is_verified:
+            raise HTTPException(status_code=401, detail="Account not verified")
+        
+        current_user_role =  IDGenerationService.get_user_role_from_id(unique_id=current_user.unique_id)
+        if current_user_role in self.allowed_roles:
+            return True
+
+        raise HTTPException(status_code=403, detail="Insufficient permissions")

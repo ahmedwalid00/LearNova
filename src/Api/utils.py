@@ -33,10 +33,6 @@ class JWTHandler:
     ACCESS_TOKEN = "access"
     REFRESH_TOKEN = "refresh"
     JTI_EXPIRY = 3600
-
-    token_blocklist = aioredis.StrictRedis(
-        host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB
-    )
     
     @staticmethod
     def create_access_token(
@@ -72,19 +68,19 @@ class JWTHandler:
             return None
         
     @staticmethod
-    async def add_jti_to_blocklist(jti: str) -> None:
+    async def add_jti_to_blocklist(jti: str , redis_client : aioredis.Redis) -> None:
         """
         Add JWT ID (JTI) to the blocklist in Redis.
         """
-        await JWTHandler.token_blocklist.set(name=jti, value="", ex=JWTHandler.JTI_EXPIRY)
+        await redis_client.set(name=jti, value="", ex=JWTHandler.JTI_EXPIRY)
 
     
     @staticmethod
-    async def is_token_in_blocklist(jti: str) -> bool:
+    async def is_token_in_blocklist(jti: str, redis_client: aioredis.Redis) -> bool:
         """
         Check if JWT ID (JTI) is in the blocklist.
         """
-        jti = await JWTHandler.token_blocklist.get(jti)
+        jti = await redis_client.get(jti)
 
         return jti is not None
     
