@@ -2,3 +2,8 @@
 alembic.ini
 .env
 tests/__pycache__/__init__.cpython-310.pyc
+.env.docker
+
+# Celery beat schedule file (generated)
+celerybeat-schedule
+

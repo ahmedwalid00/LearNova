@@ -13,14 +13,100 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_MAIN_DATABASE}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME} -d ${POSTGRES_MAIN_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     container_name: learnova_redis
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  app:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: learnova_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env.docker
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
 
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: learnova_celery_worker
+    volumes:
+      - ..:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env.docker
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=4 --queues=default,email_queue
+    restart: unless-stopped
+
+  # Celery Beat Scheduler
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: learnova_celery_beat
+    volumes:
+      - ..:/app
+      - celery_beat_data:/app/celerybeat
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ../.env.docker
+    command: celery -A src.celery_app beat --loglevel=info
+    restart: unless-stopped
+
+  # Flower Dashboard
+  flower:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
+    container_name: learnova_flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery-worker
+    env_file:
+      - ../.env.docker
+    command: celery -A src.celery_app flower --port=5555
+    restart: unless-stopped
+
+networks:
+  default:
+    name: learnova_network
 
 volumes:
   postgres_data:
+  redis_data:
+  celery_beat_data:
