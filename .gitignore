@@ -6,4 +6,26 @@ tests/__pycache__/__init__.cpython-310.pyc
 
 # Celery beat schedule file (generated)
 celerybeat-schedule
+# Python
+__pycache__/
+*.py[cod]
 
+# Virtualenv
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Local environment overrides
+.env.local
+.env.*.local
+
+# Docker compose override
+docker-compose.override.yml
+docker-compose.*.yml
+
+# Misc
+.DS_Store
