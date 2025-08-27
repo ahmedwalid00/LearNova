@@ -34,55 +34,6 @@ class UserService:
         self.parent_repo = ParentRepository(session)
         self.admin_repo = AdminRepository(session)
     
-    async def authenticate_user(self, email: str, password_hash: str) -> Optional[Dict[str, Any]]:
-        """
-        Authenticate a user across all user types.
-        
-        Args:
-            email: User's email address
-            password_hash: Hashed password
-            
-        Returns:
-            Dict with user info and type, or None if not found
-        """
-        email = email.strip().lower()  # Normalize email
-        # Check students
-        student = await self.student_repo.get_by_email(email)
-        if student and student.password_hash == password_hash:
-            return {
-                "user": student,
-                "user_type": UserTypeEnum.STUDENT.value,
-                "user_id": student.student_id
-            }
-        
-        # Check teachers
-        teacher = await self.teacher_repo.get_by_email(email)
-        if teacher and teacher.password_hash == password_hash:
-            return {
-                "user": teacher,
-                "user_type": UserTypeEnum.TEACHER.value,
-                "user_id": teacher.teacher_id
-            }
-        
-        # Check parents
-        parent = await self.parent_repo.get_by_email(email)
-        if parent and parent.password_hash == password_hash:
-            return {
-                "user": parent,
-                "user_type": UserTypeEnum.PARENT.value,
-                "user_id": parent.parent_id
-            }
-        
-        # Check admins
-        admin = await self.admin_repo.get_by_email(email)
-        if admin and admin.password_hash == password_hash:
-            return {
-                "user": admin,
-                "user_type": UserTypeEnum.ADMIN.value,
-                "user_id": admin.admin_id
-            }
-        
-        return None
     
     async def get_user_by_email_and_type(self, email: str, user_type: UserTypeEnum) -> Optional[Any]:
         """

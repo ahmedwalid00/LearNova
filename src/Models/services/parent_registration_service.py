@@ -31,8 +31,7 @@ class ParentRegistrationFlow:
     @staticmethod
     async def create_parent_access_code(
         session: AsyncSession,
-        student_unique_id: str,
-        admin_unique_id: str
+        student_unique_id: str
     ) -> Dict[str, Any]:
         """
         Create a temporary access code for parent registration
@@ -55,15 +54,6 @@ class ParentRegistrationFlow:
         if not student:
             raise ValueError(f"Student with ID {student_unique_id} not found")
         
-        # Verify admin exists and has permission
-        admin_result = await session.execute(
-            text("SELECT admin_id FROM admins WHERE unique_id = :id"),
-            {"id": admin_unique_id}
-        )
-        admin = admin_result.fetchone()
-        
-        if not admin:
-            raise ValueError(f"Admin with ID {admin_unique_id} not found")
         
         # Generate access code
         access_code = ParentRegistrationFlow.generate_access_code()
@@ -78,7 +68,6 @@ class ParentRegistrationFlow:
             "student_name": student.name,
             "parent_unique_id": parent_unique_id,
             "expires_in_hours": 48,  # Access code expires in 48 hours
-            "created_by_admin": admin_unique_id
         }
     
     @staticmethod

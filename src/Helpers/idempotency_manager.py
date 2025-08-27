@@ -122,3 +122,5 @@ class IdempotencyManager:
             return result.rowcount
         finally:
             await session.close()
+
+# alembic revision --autogenerate -m "Cleanup old tasks"
