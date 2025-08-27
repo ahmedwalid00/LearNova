@@ -39,7 +39,7 @@ services:
       dockerfile: Docker/Dockerfile
     container_name: learnova_app
     ports:
-      - "8000:8000"
+      - "8001:8000"  # Changed to port 8001 to avoid conflict
     volumes:
       - ..:/app
     depends_on:

@@ -28,12 +28,22 @@ class LessonRepository(BaseRepository[Lesson]):
         )
         return result.scalars().all()
     
-    async def get_by_subject_id(self, subject_id: UUID) -> List[Lesson]:
-        """Get all lessons by subject ID."""
+    async def get_by_subject_id(self, subject_id: UUID, skip: int = 0, limit: int = 100) -> List[Lesson]:
+        """Get all lessons by subject ID with pagination."""
         result = await self.session.execute(
-            select(Lesson).where(Lesson.subject_id == subject_id)
+            select(Lesson)
+            .where(Lesson.subject_id == subject_id)
+            .offset(skip)
+            .limit(limit)
         )
         return result.scalars().all()
+    
+    async def count_by_subject_id(self, subject_id: UUID) -> int:
+        """Count lessons by subject ID."""
+        result = await self.session.execute(
+            select(func.count(Lesson.lesson_id)).where(Lesson.subject_id == subject_id)
+        )
+        return result.scalar() or 0
     
     async def get_by_term_id(self, term_id: UUID) -> List[Lesson]:
         """Get all lessons by term ID."""

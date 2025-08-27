@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.Api.utils import JWTHandler
 from src.Helpers.db_session import get_db_session
 from src.Helpers.redis import get_redis_client
-from ..Schemes.auth_schemes import UserSignUpModel, UserLoginModel, PasswordResetRequestModel, PasswordResetConfirmModel
+from src.Api.Schemes.auth_schemes import UserSignUpModel, UserLoginModel, PasswordResetRequestModel, PasswordResetConfirmModel
 from src.Controllers.auth_controller import AuthController
-from ..dependencies import AccessTokenBearer , RefreshTokenBearer   
+from ...dependencies import AccessTokenBearer , RefreshTokenBearer   
 from src.email import create_message, mail
 
 from fastapi import APIRouter, Depends, status, Query

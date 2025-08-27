@@ -96,10 +96,23 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     def __call__(self, current_user = Depends(get_current_user)) -> Any:
-        if not current_user.is_verified:
-            raise HTTPException(status_code=401, detail="Account not verified")
+        # Handle both dictionary and object types for current_user
+        if isinstance(current_user, dict):
+            unique_id = current_user.get("unique_id")
+            is_verified = current_user.get("is_verified", True)  # Default to True for admin
+        else:
+            unique_id = getattr(current_user, "unique_id", None)
+            is_verified = getattr(current_user, "is_verified", True)
         
-        current_user_role =  IDGenerationService.get_user_role_from_id(unique_id=current_user.unique_id)
+        if not unique_id:
+            raise HTTPException(status_code=401, detail="Invalid user data")
+            
+        current_user_role = IDGenerationService.get_user_role_from_id(unique_id=unique_id)
+        
+        if current_user_role in [UserTypeEnum.STUDENT.value, UserTypeEnum.PARENT.value, UserTypeEnum.TEACHER.value]:
+            if not is_verified:
+                raise HTTPException(status_code=401, detail="Account not verified")
+
         if current_user_role in self.allowed_roles:
             return True
 

@@ -11,7 +11,7 @@ from fastapi import HTTPException, status
 import logging
 import logging
 
-from src.Models.repositories.user_repository import StudentRepository, TeacherRepository, ParentRepository
+from src.Models.repositories.user_repository import StudentRepository, TeacherRepository, ParentRepository, AdminRepository
 from src.Enums.signal_response import SignalResponse
 from src.Enums.user_type_enums import UserTypeEnum
 from src.Models.services.id_generation_service import IDGenerationService
@@ -37,12 +37,13 @@ class AuthController:
         """Initialize the controller with database session."""
         self.session = session
     
-    def _get_repository_by_user_type(self, user_type: str):
+    def _get_repository_by_user_type(self, user_type: str, allow_admin: bool = False):
         """
         Get the appropriate repository based on user type.
         
         Args:
-            user_type: The type of user (student, teacher, parent)
+            user_type: The type of user (student, teacher, parent, admin)
+            allow_admin: Whether to allow admin repository (default False for signup, True for login)
             
         Returns:
             Repository instance for the specified user type
@@ -55,10 +56,12 @@ class AuthController:
             user_type = user_type.value
 
         if user_type == UserTypeEnum.ADMIN.value:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Admin accounts cannot self-register"
-            )
+            if not allow_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN, 
+                    detail="Admin accounts cannot self-register"
+                )
+            return AdminRepository(self.session)
         
         if user_type == UserTypeEnum.STUDENT.value:
             return StudentRepository(self.session)
@@ -559,8 +562,8 @@ class AuthController:
             # Determine user type from unique ID
             user_type = IDGenerationService.get_user_role_from_id(unique_id)
             
-            # Get appropriate repository
-            user_repo = self._get_repository_by_user_type(user_type)
+            # Get appropriate repository (allow admin for login)
+            user_repo = self._get_repository_by_user_type(user_type, allow_admin=True)
             
             # Find user by unique ID
             user = await user_repo.get_by_unique_id(unique_id)
