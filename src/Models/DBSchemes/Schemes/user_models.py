@@ -22,7 +22,7 @@ class Student(BaseModel):
 	parent_links = relationship("ParentStudentLink", back_populates="student", lazy="select")
 	classrooms = relationship("ClassRoom", back_populates="student", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="student", lazy="select")
-	analytics_reports = relationship("AnalyticsReport", back_populates="student", lazy="select")
+	# analytics_reports = relationship("AnalyticsReport", back_populates="student", lazy="select")
 
 	__table_args__ = (
 		Index('ix_student_unique_id', unique_id),
@@ -54,7 +54,7 @@ class Teacher(BaseModel):
 	question_practices = relationship("QuestionPractice", back_populates="teacher", lazy="select")
 	question_exams = relationship("QuestionExam", back_populates="teacher", lazy="select")
 	exams = relationship("Exam", back_populates="teacher", lazy="select")
-	analytics_reports = relationship("AnalyticsReport", back_populates="teacher", lazy="select")
+	# analytics_reports = relationship("AnalyticsReport", back_populates="teacher", lazy="select")
 
 	__table_args__ = (
 		Index('ix_teacher_unique_id', unique_id),

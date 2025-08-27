@@ -22,7 +22,7 @@ class AcademicTerm(BaseModel):
 	question_exams = relationship("QuestionExam", back_populates="term", lazy="select")
 	exams = relationship("Exam", back_populates="term", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="term", lazy="select")
-	analytics_reports = relationship("AnalyticsReport", back_populates="term", lazy="select")
+	# analytics_reports = relationship("AnalyticsReport", back_populates="term", lazy="select")
 	classrooms = relationship("ClassRoom", back_populates="term", lazy="select")
 	
 	__table_args__ = (

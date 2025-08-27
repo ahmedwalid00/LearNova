@@ -12,16 +12,16 @@ class AnalyticsReport(BaseModel):
 	content = Column(Text, nullable=False)
 	report_date = Column(Date, nullable=False)
 
-	student_id = Column(Integer, ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False)
-	teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.teacher_id", ondelete="SET NULL"), nullable=True, index=True)
-	week_id = Column(UUID(as_uuid=True), ForeignKey("term_weeks.week_id", ondelete="SET NULL"), nullable=True, index=True)
-	term_id = Column(UUID(as_uuid=True), ForeignKey("academic_terms.term_id", ondelete="CASCADE"), nullable=False, index=True)
+	student_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+	teacher_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+	week_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+	term_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
-	# Relationships
-	student = relationship("Student", back_populates="analytics_reports", lazy="select")
-	teacher = relationship("Teacher", back_populates="analytics_reports", lazy="select")
-	week = relationship("TermWeek", back_populates="analytics_reports", lazy="select")
-	term = relationship("AcademicTerm", back_populates="analytics_reports", lazy="select")
+	# Relationships - temporarily commented out due to missing foreign keys
+	# student = relationship("Student", back_populates="analytics_reports", lazy="select")
+	# teacher = relationship("Teacher", back_populates="analytics_reports", lazy="select")  
+	# week = relationship("TermWeek", back_populates="analytics_reports", lazy="select")
+	# term = relationship("AcademicTerm", back_populates="analytics_reports", lazy="select")
 
 	__table_args__ = (
 		Index('ix_analytics_student_report_date', student_id, report_date),
@@ -31,3 +31,4 @@ class AnalyticsReport(BaseModel):
 
 	def __repr__(self):
 		return f"<AnalyticsReport(report_date={self.report_date}, term_id={self.term_id})>"
+#alembic alembic revision --autogenerate -m "Add foreign key constraints to analytics report"

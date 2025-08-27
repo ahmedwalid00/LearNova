@@ -14,7 +14,7 @@ class TermWeek(BaseModel):
 
 	# Relationships
 	term = relationship("AcademicTerm", back_populates="term_weeks", lazy="select")
-	analytics_reports = relationship("AnalyticsReport", back_populates="week", lazy="select")
+	# analytics_reports = relationship("AnalyticsReport", back_populates="week", lazy="select")
 
 	__table_args__ = (
 		Index('ix_term_week_term_id', term_id),
