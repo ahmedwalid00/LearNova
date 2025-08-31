@@ -10,4 +10,9 @@ class SignalResponse(Enum):
     ID_DOESNT_MATCH_ROLE = "User ID does not match role"
     UNIQUE_ID_ALREADY_REGISTERED = "ID already registered"
     INVALID_USER_TYPE = "Invalid user type"
+    USER_NOT_FOUND = "User not found"
+    NO_FILE_UPLOADED = "No file uploaded"
+    NO_FILE_NAME_PROVIDED = "No file name provided"
+
+
     

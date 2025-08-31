@@ -43,7 +43,7 @@ class Teacher(BaseModel):
 	password_hash = Column(String(255), nullable=False)
 	rating = Column(DECIMAL, nullable=True)
 	subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.subject_id"), nullable=True, index=True)
-	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=False, index=True)
+	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=True, index=True)  # Temporarily nullable for dev testing
 	term_id = Column(UUID(as_uuid=True), ForeignKey("academic_terms.term_id"), nullable=True, index=True)
 
 	# Relationships
@@ -73,7 +73,7 @@ class Parent(BaseModel):
 	email = Column(String(255), nullable=False, unique=True, index=True)
 	password_hash = Column(String(255), nullable=True)  # Optional for Option A registration flow
 	is_verified = Column(Boolean, default=False)
-	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=False, index=True)
+	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=True, index=True)  # Temporarily nullable for dev testing
 
 	# Relationships
 	admin = relationship("Admin", back_populates="parents", lazy="select")
