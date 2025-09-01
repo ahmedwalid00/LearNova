@@ -1,7 +1,7 @@
 from src.celery_app import celery_app, get_setup_utils
 from src.Helpers.config import get_settings
 from src.Helpers.idempotency_manager import IdempotencyManager
-from src.email import create_message, mail
+from src.email_config import create_message, mail
 from src.Api.utils import TokenSerializer
 import asyncio
 import logging

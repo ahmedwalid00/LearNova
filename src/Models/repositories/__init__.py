@@ -10,6 +10,7 @@ from .user_repository import StudentRepository, TeacherRepository, ParentReposit
 from .lesson_repository import LessonRepository, LessonChunkRepository
 from .exam_repository import ExamRepository, ExamResultRepository
 from .analytics_repository import AnalyticsRepository
+from .classroom_repository import ClassRoomRepository
 
 __all__ = [
     "BaseRepository",
@@ -22,4 +23,5 @@ __all__ = [
     "ExamRepository",
     "ExamResultRepository",
     "AnalyticsRepository",
+    "ClassRoomRepository",
 ]

@@ -124,7 +124,6 @@ async def create_exam(
     """
     logger.info(f"User creating exam: {exam_data.title}")
     
-    # Get teacher ID from current user (current_user could be a dict or object)
     # Get teacher ID from current user (dictionary)
     teacher_id = current_user.get('teacher_id')
     teacher_term_id = current_user.get('term_id')

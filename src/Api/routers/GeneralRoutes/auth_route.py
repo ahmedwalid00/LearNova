@@ -7,7 +7,7 @@ from src.Helpers.redis import get_redis_client
 from src.Api.Schemes.auth_schemes import UserSignUpModel, UserLoginModel, PasswordResetRequestModel, PasswordResetConfirmModel
 from src.Controllers.auth_controller import AuthController
 from ...dependencies import AccessTokenBearer , RefreshTokenBearer   
-from src.email import create_message, mail
+from src.email_config import create_message, mail
 
 from fastapi import APIRouter, Depends, status, Query
 from fastapi.exceptions import HTTPException

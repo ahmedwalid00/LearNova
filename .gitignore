@@ -10,10 +10,20 @@ celerybeat-schedule
 __pycache__/
 *.py[cod]
 
-# Auto-generated/unwanted folders
+# Auto-generated/unwanted folders (DO NOT REMOVE - prevents auto-recreation)
 src/Api/schemas/
-src/Api/schemas/admin.py
-src/Api/routers/TeachersRoutes/lesson_upload.py
+src/Api/schemas/*
+src/Services/
+src/Services/*
+src/Api/Controllers/
+src/Api/Controllers/*
+src/Models/Enums/
+src/Models/Enums/*
+src/database/
+src/database/*
+celerybeat/
+celerybeat/*
+# Specific auto-generated files (DO NOT REMOVE)
 CELERY_SETUP.md
 LESSON_FEATURE_IMPLEMENTATION.md
 PGVECTOR_SETUP.md
@@ -21,21 +31,16 @@ postman_collection.json
 test_lesson.pdf
 test_lesson.txt
 test_pgvector.py
+# Other auto-generated files
+src/Api/routers/TeachersRoutes/lesson_upload.py
 src/Tasks/example_to_clarify.py
-src/Services
-src/Services/teacher_lesson_service.py
 src/Models/DBSchemes/Schemes/parent_student_association.py
-src/Models/Enums
 src/Models/repositories/academic_term_repository_new.py
 src/Models/usage_examples.py
 src/Models/USAGE_GUIDE.md
-src/database
 src/Api/Schemes/token.py
 src/Api/Schemes/user.py
 src/Api/routers/auth_route.py
-src/Api/Controllers
-src/Api/Controllers/auth_controller.py
-celerybeat
 Docker/docker-compose.dev.yml
 
 # Virtualenv

@@ -20,7 +20,7 @@ class Student(BaseModel):
 	admin = relationship("Admin", back_populates="students", lazy="select")
 	term = relationship("AcademicTerm", back_populates="students", lazy="select")
 	parent_links = relationship("ParentStudentLink", back_populates="student", lazy="select")
-	classrooms = relationship("ClassRoom", back_populates="student", lazy="select")
+	classroom_assignments = relationship("ClassRoomStudent", back_populates="student", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="student", lazy="select")
 	# analytics_reports = relationship("AnalyticsReport", back_populates="student", lazy="select")
 

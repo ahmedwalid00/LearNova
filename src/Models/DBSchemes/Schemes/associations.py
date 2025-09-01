@@ -8,25 +8,49 @@ import uuid
 
 class ClassRoom(BaseModel):
 	__tablename__ = "classrooms"
-	student_id = Column(UUID(as_uuid=True), ForeignKey("students.student_id"), primary_key=True)
-	subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.subject_id"), primary_key=True)
-	teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.teacher_id"), primary_key=True)
+	classroom_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False, index=True)
+	subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.subject_id"), nullable=False, index=True)
+	teacher_id = Column(UUID(as_uuid=True), ForeignKey("teachers.teacher_id"), nullable=False, index=True)
 	term_id = Column(UUID(as_uuid=True), ForeignKey("academic_terms.term_id"), nullable=False, index=True)
+	grade_level = Column(String(10), nullable=False, index=True)  # e.g., "Grade 12", "Grade 11"
+	classroom_name = Column(String(100), nullable=True, index=True)  # Optional classroom name
 
 	# Relationships
-	student = relationship("Student", back_populates="classrooms", lazy="select")
 	subject = relationship("Subject", back_populates="classrooms", lazy="select")
 	teacher = relationship("Teacher", back_populates="classrooms", lazy="select")
 	term = relationship("AcademicTerm", lazy="select")
 
 	__table_args__ = (
-		Index('ix_classroom_student_subject', student_id, subject_id),
-		Index('ix_classroom_teacher_subject', teacher_id, subject_id),
+		Index('ix_classroom_subject_teacher', subject_id, teacher_id),
 		Index('ix_classroom_term_id', term_id),
+		Index('ix_classroom_grade_level', grade_level),
+		Index('ix_classroom_unique_setup', subject_id, teacher_id, term_id, grade_level, unique=True),
 	)
 
 	def __repr__(self):
-		return f"<ClassRoom(student_id={self.student_id}, subject_id={self.subject_id}, teacher_id={self.teacher_id})>"
+		return f"<ClassRoom(classroom_id={self.classroom_id}, subject_id={self.subject_id}, teacher_id={self.teacher_id}, grade_level='{self.grade_level}')>"
+
+
+class ClassRoomStudent(BaseModel):
+	"""Association table for students assigned to classrooms"""
+	__tablename__ = "classroom_students"
+	
+	classroom_student_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False, index=True)
+	classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.classroom_id"), nullable=False, index=True)
+	student_id = Column(UUID(as_uuid=True), ForeignKey("students.student_id"), nullable=False, index=True)
+
+	# Relationships
+	classroom = relationship("ClassRoom", lazy="select")
+	student = relationship("Student", back_populates="classroom_assignments", lazy="select")
+
+	__table_args__ = (
+		Index('ix_classroom_student_unique', classroom_id, student_id, unique=True),
+		Index('ix_classroom_students_classroom', classroom_id),
+		Index('ix_classroom_students_student', student_id),
+	)
+
+	def __repr__(self):
+		return f"<ClassRoomStudent(classroom_id={self.classroom_id}, student_id={self.student_id})>"
 	
 
 class ParentStudentLink(BaseModel):
