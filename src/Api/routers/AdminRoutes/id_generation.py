@@ -6,9 +6,10 @@ Handles ID generation for students and teachers.
 from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from src.Controllers.admin_controller import AdminController
-from src.Api.dependencies import get_db_session, RoleChecker
+from src.Api.dependencies import get_db_session, RoleChecker, get_current_user
 from src.Api.Schemes.admin import (
     IDGenerationRequestModel,
     IDGenerationResponseModel
@@ -23,11 +24,13 @@ admin_required = RoleChecker(allowed_roles=["admin"])
 @router.post("/single", response_model=IDGenerationResponseModel , dependencies=[Depends(admin_required)])
 async def generate_single_id(
     request_data: IDGenerationRequestModel,
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
+    current_user: dict = Depends(get_current_user)
 ):
-    """Generate a single ID for a user"""
+    """Generate a single ID for a user and create partial user record"""
     controller = AdminController(session)
-    result = await controller.generate_single_id(request_data)
+    admin_id = UUID(current_user["id"])  # Convert string ID to UUID
+    result = await controller.generate_single_id(request_data, admin_id)
     return result
 
 
@@ -35,11 +38,13 @@ async def generate_single_id(
 async def generate_bulk_ids(
     user_type: str = Query(..., description="User type (student/teacher)"),
     count: int = Query(..., ge=1, le=1000, description="Number of IDs to generate"),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
+    current_user: dict = Depends(get_current_user)
 ):      
-    """Generate multiple IDs for a user type"""
+    """Generate multiple IDs for a user type and create partial user records"""
     controller = AdminController(session)
-    result = await controller.generate_bulk_ids(user_type, count)
+    admin_id = UUID(current_user["id"])  # Convert string ID to UUID
+    result = await controller.generate_bulk_ids(user_type, count, admin_id)
     return result
 
 
@@ -79,7 +84,8 @@ async def get_id_statistics(
 async def reserve_ids(
     user_type: str = Query(..., description="User type (student/teacher)"),
     count: int = Query(..., ge=1, le=1000, description="Number of IDs to reserve"),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
+    current_user: dict = Depends(get_current_user)
 ):
     """Reserve IDs for future use"""
     controller = AdminController(session)

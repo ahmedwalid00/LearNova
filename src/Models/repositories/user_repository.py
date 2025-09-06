@@ -28,6 +28,13 @@ class StudentRepository(BaseRepository[Student]):
         )
         return result.scalar_one_or_none()
     
+    async def get_by_unique_id(self, unique_id: str) -> Optional[Student]:
+        """Get student by unique ID."""
+        result = await self.session.execute(
+            select(Student).where(Student.unique_id == unique_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_by_parent_id(self, parent_id: UUID) -> List[Student]:
         """Get all students by parent ID."""
         result = await self.session.execute(
@@ -88,6 +95,7 @@ class StudentRepository(BaseRepository[Student]):
         """Return list of student-specific methods."""
         return [
             "get_by_email",
+            "get_by_unique_id",
             "get_by_parent_id", 
             "get_by_term_id",
             "get_by_rating_range",
@@ -105,6 +113,13 @@ class TeacherRepository(BaseRepository[Teacher]):
         """Get teacher by email address."""
         result = await self.session.execute(
             select(Teacher).where(Teacher.email == email)
+        )
+        return result.scalar_one_or_none()
+    
+    async def get_by_unique_id(self, unique_id: str) -> Optional[Teacher]:
+        """Get teacher by unique ID."""
+        result = await self.session.execute(
+            select(Teacher).where(Teacher.unique_id == unique_id)
         )
         return result.scalar_one_or_none()
     
@@ -145,6 +160,7 @@ class TeacherRepository(BaseRepository[Teacher]):
         """Return list of teacher-specific methods."""
         return [
             "get_by_email",
+            "get_by_unique_id",
             "get_by_subject_id",
             "get_by_term_id", 
             "get_by_rating_range",
@@ -165,6 +181,13 @@ class ParentRepository(BaseRepository[Parent]):
         )
         return result.scalar_one_or_none()
     
+    async def get_by_unique_id(self, unique_id: str) -> Optional[Parent]:
+        """Get parent by unique ID."""
+        result = await self.session.execute(
+            select(Parent).where(Parent.unique_id == unique_id)
+        )
+        return result.scalar_one_or_none()
+    
     async def get_verified_parents(self) -> List[Parent]:
         """Get all verified parents."""
         result = await self.session.execute(
@@ -176,6 +199,7 @@ class ParentRepository(BaseRepository[Parent]):
         """Return list of parent-specific methods."""
         return [
             "get_by_email",
+            "get_by_unique_id",
             "get_verified_parents"
         ]
 
@@ -193,8 +217,16 @@ class AdminRepository(BaseRepository[Admin]):
         )
         return result.scalar_one_or_none()
     
+    async def get_by_unique_id(self, unique_id: str) -> Optional[Admin]:
+        """Get admin by unique ID."""
+        result = await self.session.execute(
+            select(Admin).where(Admin.unique_id == unique_id)
+        )
+        return result.scalar_one_or_none()
+    
     def get_model_specific_methods(self):
         """Return list of admin-specific methods."""
         return [
-            "get_by_email"
+            "get_by_email",
+            "get_by_unique_id"
         ]

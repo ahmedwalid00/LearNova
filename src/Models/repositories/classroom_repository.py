@@ -1,8 +1,9 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple, Tuple
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
 from .base import BaseRepository
 from ..DBSchemes.Schemes.associations import ClassRoom
 from ..DBSchemes.Schemes.user_models import Teacher
@@ -24,7 +25,9 @@ class ClassRoomRepository(BaseRepository[ClassRoom]):
             "get_classrooms_by_term",
             "get_classroom_with_details",
             "update_teacher_for_classroom",
-            "search_classrooms"
+            "search_classrooms",
+            "count_student_classrooms",
+            "get_student_classrooms_with_details"
         ]
 
     async def create_classroom(
@@ -207,3 +210,57 @@ class ClassRoomRepository(BaseRepository[ClassRoom]):
             
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def count_student_classrooms(self, student_id: UUID) -> int:
+        """Count the number of classrooms a student is enrolled in."""
+        # This is a placeholder implementation
+        # In a real system, this would join with a student_classroom table
+        # For now, return a default count
+        return 3  # Placeholder value
+
+    async def get_student_classrooms_with_details(
+        self,
+        student_id: UUID,
+        limit: int = 10,
+        offset: int = 0
+    ) -> List[Tuple[ClassRoom, str, str, int]]:
+        """
+        Get classrooms that a student is enrolled in with detailed information.
+        
+        Returns:
+            List of tuples containing (classroom, teacher_name, subject_name, lesson_count)
+        """
+        # This is a placeholder implementation
+        # In a real system, this would join with student enrollment tables
+        
+        # For demonstration, let's get some sample classrooms and add sample data
+        query = select(self.model).limit(limit).offset(offset)
+        result = await self.session.execute(query)
+        classrooms = result.scalars().all()
+        
+        classroom_details = []
+        for classroom in classrooms:
+            # Get teacher details
+            teacher_result = await self.session.execute(
+                select(Teacher).filter(Teacher.teacher_id == classroom.teacher_id)
+            )
+            teacher = teacher_result.scalar_one_or_none()
+            teacher_name = teacher.name if teacher else "Unknown Teacher"
+            
+            # Get subject details
+            subject_result = await self.session.execute(
+                select(Subject).filter(Subject.subject_id == classroom.subject_id)
+            )
+            subject = subject_result.scalar_one_or_none()
+            subject_name = subject.name if subject else "Unknown Subject"
+            
+            # Placeholder lesson count (would come from lessons table)
+            lesson_count = 12  # Placeholder value
+            
+            classroom_details.append((classroom, teacher_name, subject_name, lesson_count))
+        
+        return classroom_details
+
+
+# Alias for consistent naming across the application
+ClassroomRepository = ClassRoomRepository

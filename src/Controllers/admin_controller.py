@@ -505,10 +505,10 @@ class AdminController:
             )
 
     # ID Generation Management
-    async def generate_single_id(self, request_data: IDGenerationRequestModel) -> Dict[str, Any]:
-        """Generate a single ID"""
+    async def generate_single_id(self, request_data: IDGenerationRequestModel, admin_id: UUID) -> Dict[str, Any]:
+        """Generate a single ID and create partial user record"""
         try:
-            return await self.id_service.generate_single_id(request_data)
+            return await self.id_service.generate_single_id(request_data, admin_id)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -520,10 +520,10 @@ class AdminController:
                 detail="Failed to generate ID"
             )
 
-    async def generate_bulk_ids(self, user_type: str, count: int) -> Dict[str, Any]:
-        """Generate multiple IDs"""
+    async def generate_bulk_ids(self, user_type: str, count: int, admin_id: UUID) -> Dict[str, Any]:
+        """Generate multiple IDs and create partial user records"""
         try:
-            return await self.id_service.generate_bulk_ids(user_type, count)
+            return await self.id_service.generate_bulk_ids(user_type, count, admin_id)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

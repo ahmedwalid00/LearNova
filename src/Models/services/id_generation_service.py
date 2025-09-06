@@ -2,6 +2,7 @@ from typing import Optional, Dict, List, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from uuid import UUID, uuid4
 from src.Enums.user_type_enums import UserIDPrefix, UserTypeEnum
 from src.Api.Schemes.admin import IDGenerationRequestModel
 
@@ -103,7 +104,116 @@ class IDGenerationService:
             next_number = 1
             
         return f"{admin_type}{next_number:03d}"
+
+    @staticmethod
+    def get_user_role_from_id(unique_id: str) -> str:
+        """Determine user role from unique ID pattern"""
+        from src.Enums.user_type_enums import UserIDPrefix, UserTypeEnum
+        
+        if unique_id.startswith(UserIDPrefix.STUDENT.value):
+            return UserTypeEnum.STUDENT.value
+        elif unique_id.startswith(UserIDPrefix.TEACHER.value):
+            return UserTypeEnum.TEACHER.value
+        elif unique_id.startswith(UserIDPrefix.ADMIN.value) or unique_id.startswith("SUPER"):
+            return UserTypeEnum.ADMIN.value
+        elif unique_id.startswith(UserIDPrefix.PARENT.value):
+            return UserTypeEnum.PARENT.value
+        else:
+            raise ValueError(f"Invalid unique ID format: {unique_id}")
     
+    async def create_partial_user_record(self, user_type: str, unique_id: str, admin_id: UUID, term_id: Optional[UUID] = None) -> Dict[str, Any]:
+        """
+        Create a partial user record in the database with basic information.
+        
+        This method creates incomplete user records that will be completed when users sign up.
+        
+        Args:
+            user_type: Type of user (student/teacher/parent)
+            unique_id: Generated unique ID
+            admin_id: ID of the admin creating this record
+            term_id: Optional term ID (will get current active term if not provided)
+            
+        Returns:
+            Dict containing the created partial record information
+            
+        Raises:
+            ValueError: If user creation fails or invalid user type
+        """
+        try:
+            # Get current active term if not provided
+            if not term_id:
+                term_id = await self._get_current_active_term()
+            
+            # Generate UUID for the new user
+            user_uuid = uuid4()
+            
+            # Create partial user record based on type
+            if user_type == UserTypeEnum.STUDENT.value:
+                query = text("""
+                    INSERT INTO students (student_id, unique_id, name, email, password_hash, is_verified, admin_id, term_id, created_at, updated_at)
+                    VALUES (:user_id, :unique_id, 'Pending Registration', :placeholder_email, 'pending', false, :admin_id, :term_id, :created_at, :updated_at)
+                """)
+            elif user_type == UserTypeEnum.TEACHER.value:
+                query = text("""
+                    INSERT INTO teachers (teacher_id, unique_id, name, email, password_hash, is_verified, admin_id, term_id, created_at, updated_at)
+                    VALUES (:user_id, :unique_id, 'Pending Registration', :placeholder_email, 'pending', false, :admin_id, :term_id, :created_at, :updated_at)
+                """)
+            elif user_type == UserTypeEnum.PARENT.value:
+                query = text("""
+                    INSERT INTO parents (parent_id, unique_id, name, email, password_hash, is_verified, admin_id, created_at, updated_at)
+                    VALUES (:user_id, :unique_id, 'Pending Registration', :placeholder_email, 'pending', false, :admin_id, :created_at, :updated_at)
+                """)
+            else:
+                raise ValueError(f"Invalid user type for partial record creation: {user_type}")
+            
+            # Execute the insertion
+            current_time = datetime.utcnow()
+            params = {
+                "user_id": user_uuid,
+                "unique_id": unique_id,
+                "placeholder_email": f"pending_{unique_id}@learnova.pending",  # Unique placeholder email
+                "admin_id": admin_id,
+                "created_at": current_time,
+                "updated_at": current_time
+            }
+            
+            # Add term_id for students and teachers only
+            if user_type in [UserTypeEnum.STUDENT.value, UserTypeEnum.TEACHER.value]:
+                params["term_id"] = term_id
+            
+            await self.session.execute(query, params)
+            await self.session.flush()  # Flush to ensure record is created
+            
+            return {
+                "user_id": str(user_uuid),
+                "unique_id": unique_id,
+                "user_type": user_type,
+                "admin_id": str(admin_id),
+                "term_id": str(term_id) if term_id else None,
+                "status": "partial_record_created",
+                "created_at": current_time
+            }
+            
+        except Exception as e:
+            raise ValueError(f"Failed to create partial {user_type} record: {str(e)}")
+
+    async def _get_current_active_term(self) -> Optional[UUID]:
+        """
+        Get the current active academic term.
+        
+        Returns:
+            UUID of the active term or None if no active term found
+        """
+        try:
+            result = await self.session.execute(
+                text("SELECT term_id FROM academic_terms WHERE is_active = true LIMIT 1")
+            )
+            term_id = result.scalar_one_or_none()
+            return term_id
+        except Exception:
+            # If no active term found, return None
+            return None
+
     @staticmethod
     def get_user_role_from_id(unique_id: str) -> str:
         """Determine user role from unique ID pattern"""
@@ -119,8 +229,8 @@ class IDGenerationService:
             raise ValueError(f"Invalid unique ID format: {unique_id}")
 
     # Admin-specific methods for bulk operations and management
-    async def generate_single_id(self, request_data: IDGenerationRequestModel) -> Dict[str, Any]:
-        """Generate a single ID for admin interface"""
+    async def generate_single_id(self, request_data: IDGenerationRequestModel, admin_id: UUID) -> Dict[str, Any]:
+        """Generate a single ID for admin interface and create partial user record"""
         
         user_type = request_data.user_type.lower()
 
@@ -131,14 +241,22 @@ class IDGenerationService:
         else:
             raise ValueError(f"Invalid user type: {user_type}")
 
+        # Create partial user record in the database
+        partial_record = await self.create_partial_user_record(
+            user_type=user_type,
+            unique_id=generated_id,
+            admin_id=admin_id
+        )
+
         return {
             "user_type": request_data.user_type,
-            "generated_ids": [generated_id],  # Wrap single ID in a list
-            "count": 1
+            "generated_ids": [generated_id],  # Wrap single ID in a list for consistency
+            "count": 1,
+            "partial_records": [partial_record]
         }
 
-    async def generate_bulk_ids(self, user_type: str, count: int) -> Dict[str, Any]:
-        """Generate multiple IDs for admin bulk operations"""
+    async def generate_bulk_ids(self, user_type: str, count: int, admin_id: UUID) -> Dict[str, Any]:
+        """Generate multiple IDs for admin bulk operations and create partial user records"""
         
         if user_type.lower() not in ["student", "teacher"]:
             raise ValueError("User type must be either 'student' or 'teacher'")
@@ -147,6 +265,7 @@ class IDGenerationService:
             raise ValueError("Count must be between 1 and 1000")
 
         generated_ids = []
+        partial_records = []
         
         # Get the base next ID first
         if user_type.lower() == UserTypeEnum.STUDENT.value:
@@ -159,15 +278,34 @@ class IDGenerationService:
         # Extract the base number
         base_number = int(base_id[len(prefix):])
         
-        # Generate sequential IDs
+        # Generate sequential IDs and create partial records
         for i in range(count):
             sequential_id = f"{prefix}{base_number + i:03d}"
             generated_ids.append(sequential_id)
+            
+            # Create partial user record for each ID
+            try:
+                partial_record = await self.create_partial_user_record(
+                    user_type=user_type.lower(),
+                    unique_id=sequential_id,
+                    admin_id=admin_id
+                )
+                partial_records.append(partial_record)
+            except Exception as e:
+                # If partial record creation fails, still return the generated ID but note the failure
+                partial_records.append({
+                    "unique_id": sequential_id,
+                    "status": "id_generated_but_partial_record_failed",
+                    "error": str(e)
+                })
 
         return {
             "user_type": user_type,
             "generated_ids": generated_ids,
-            "count": len(generated_ids)
+            "count": len(generated_ids),
+            "partial_records": partial_records,
+            "successful_records": len([r for r in partial_records if r.get("status") == "partial_record_created"]),
+            "failed_records": len([r for r in partial_records if "error" in r])
         }
 
     async def validate_id_format(self, unique_id: str) -> Dict[str, Any]:

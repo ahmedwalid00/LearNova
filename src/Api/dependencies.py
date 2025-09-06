@@ -73,7 +73,21 @@ async def get_current_user(
     if unique_id:
         user = await AuthorizationService.get_user_by_unique_id(session, unique_id)
         if user:
-            return user
+            # Return formatted user dict with proper ID field
+            user_id = (
+                user.get("student_id") or 
+                user.get("teacher_id") or 
+                user.get("parent_id") or 
+                user.get("admin_id")
+            )
+            return {
+                "id": str(user_id) if user_id else None,
+                "unique_id": user.get("unique_id"),
+                "email": user.get("email"),
+                "name": user.get("name"),
+                "is_verified": user.get("is_verified", True),
+                "user_type": IDGenerationService.get_user_role_from_id(user.get("unique_id", ""))
+            }
 
     # Fallback: lookup by email across user repositories
     if email:
@@ -85,7 +99,21 @@ async def get_current_user(
             except Exception:
                 candidate = None
             if candidate:
-                return candidate
+                # Return formatted user dict with proper ID field
+                user_id = (
+                    getattr(candidate, "student_id", None) or 
+                    getattr(candidate, "teacher_id", None) or 
+                    getattr(candidate, "parent_id", None) or
+                    getattr(candidate, "admin_id", None)
+                )
+                return {
+                    "id": str(user_id) if user_id else None,
+                    "unique_id": getattr(candidate, "unique_id", None),
+                    "email": getattr(candidate, "email", None),
+                    "name": getattr(candidate, "name", None),
+                    "is_verified": getattr(candidate, "is_verified", True),
+                    "user_type": IDGenerationService.get_user_role_from_id(getattr(candidate, "unique_id", ""))
+                }
 
     raise HTTPException(status_code=401, detail="Could not resolve user from token")
 

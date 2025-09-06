@@ -133,19 +133,25 @@ class AuthController:
                 detail=SignalResponse.PASSWORD_NOT_MATCH.value,
             )
     
-    async def _check_existing_user(self, user_repo, email: str, unique_id: str) -> None:
+    async def _check_existing_user(self, user_repo, email: str, unique_id: str) -> Optional[Any]:
         """
         Check if user already exists by email or unique ID.
+        
+        Returns the existing user if found as a partial record (for completion),
+        otherwise raises HTTPException if fully registered user exists.
         
         Args:
             user_repo: Repository instance
             email: User email to check
             unique_id: User unique ID to check
             
+        Returns:
+            Existing partial user record if found, None if no conflicts
+            
         Raises:
-            HTTPException: If user already exists
+            HTTPException: If user already exists and is fully registered
         """
-        # Check email
+        # Check email - this should never exist for partial records
         existing_email = await user_repo.get_by_email(email)
         if existing_email:
             logger.error(f"Email already registered: {email}")
@@ -154,14 +160,24 @@ class AuthController:
                 detail=SignalResponse.EMAIL_ALREADY_REGISTERED.value
             )
         
-        # Check unique ID
+        # Check unique ID - this might exist as a partial record
         existing_unique_id = await user_repo.get_by_unique_id(unique_id)
         if existing_unique_id:
-            logger.error(f"Unique ID already registered: {unique_id}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=SignalResponse.UNIQUE_ID_ALREADY_REGISTERED.value
-            )
+            # Check if this is a partial record (placeholder email indicates partial)
+            if (existing_unique_id.email.endswith("@learnova.pending") and 
+                existing_unique_id.name == "Pending Registration"):
+                # This is a partial record - return it for completion
+                logger.info(f"Found partial record for unique_id: {unique_id}")
+                return existing_unique_id
+            else:
+                # This is a fully registered user
+                logger.error(f"Unique ID already registered: {unique_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    detail=SignalResponse.UNIQUE_ID_ALREADY_REGISTERED.value
+                )
+        
+        return None
     
     def _format_user_response(self, user) -> Dict[str, Any]:
         """
@@ -482,6 +498,8 @@ class AuthController:
         """
         Handle user signup process.
         
+        This method now handles both new user creation and completion of partial user records.
+        
         Args:
             user_data: User signup data
             
@@ -497,28 +515,65 @@ class AuthController:
         # Get appropriate repository
         user_repo = self._get_repository_by_user_type(user_data.user_type)
         
-        # Check for existing users
+        # Check for existing users (may return partial record)
         email = user_data.email.lower()
-        await self._check_existing_user(user_repo, email, user_data.user_unique_id)
+        existing_partial_user = await self._check_existing_user(user_repo, email, user_data.user_unique_id)
         
         # Prepare user data
         combined_name = f"{user_data.first_name} {user_data.last_name}"
         hashed_password = PasswordHandler.hash_password(user_data.password)
         
-        # Create user
+        # Create or update user
         try:
-            new_user = await user_repo.create(
-                email=email,
-                name=combined_name,
-                password_hash=hashed_password,
-                unique_id=user_data.user_unique_id
-            )
-            
-            if not new_user:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-                    detail="Failed to create user"
+            if existing_partial_user:
+                # Complete the partial record
+                user_pk = (
+                    getattr(existing_partial_user, "student_id", None) or
+                    getattr(existing_partial_user, "teacher_id", None) or
+                    getattr(existing_partial_user, "parent_id", None) or
+                    getattr(existing_partial_user, "admin_id", None)
                 )
+                
+                if not user_pk:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Unable to determine user primary key for partial record"
+                    )
+                
+                # Update the partial record with complete information
+                updated_user = await user_repo.update(
+                    user_pk,
+                    email=email,
+                    name=combined_name,
+                    password_hash=hashed_password,
+                    is_verified=False  # Will be verified via email
+                )
+                
+                if not updated_user:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to complete partial user record"
+                    )
+                
+                new_user = updated_user
+                signup_type = "partial_record_completed"
+                
+            else:
+                # Create new user (fallback for cases where no partial record exists)
+                new_user = await user_repo.create(
+                    email=email,
+                    name=combined_name,
+                    password_hash=hashed_password,
+                    unique_id=user_data.user_unique_id
+                )
+                
+                if not new_user:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Failed to create user"
+                    )
+                
+                signup_type = "new_user_created"
             
             # Format response
             user_out = self._format_user_response(new_user)
@@ -534,14 +589,15 @@ class AuthController:
                 "message": SignalResponse.SIGNUP_SUCCESS.value,
                 "user": user_out,
                 "verification_email_queued": True,
-                "email_task_id": task_id
+                "email_task_id": task_id,
+                "signup_type": signup_type
             }
             
         except Exception as e:
-            logger.error(f"Error creating user: {str(e)}")
+            logger.error(f"Error during user signup: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-                detail="Failed to create user"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to process user signup"
             )
     
     async def login_user(self, unique_id: str, password: str) -> Dict[str, Any]:

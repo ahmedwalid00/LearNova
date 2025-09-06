@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from src.Helpers.config import get_settings
 from src.Models.repositories.user_repository import AdminRepository
 from src.Models.services.id_generation_service import IDGenerationService
-import bcrypt
+from src.Api.utils import PasswordHandler
 
 
 async def create_admin(name: str, email: str, password: str, admin_type: str = "ADMIN", unique_id_override: Optional[str] = None) -> int:
@@ -57,9 +57,8 @@ async def create_admin(name: str, email: str, password: str, admin_type: str = "
             else:
                 unique_id = await id_service.generate_admin_id(admin_type.strip().upper() or "ADMIN")
 
-            # Hash password with same logic used in PasswordHandler (bcrypt with salt)
-            salt = bcrypt.gensalt()
-            pwd_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+            # Hash password with PasswordHandler (same as used in auth)
+            pwd_hash = PasswordHandler.hash_password(password)
 
             # Create admin
             admin = await repo.create(name=name.strip(), email=email_l, password_hash=pwd_hash, unique_id=unique_id)

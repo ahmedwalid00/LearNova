@@ -3,7 +3,7 @@ Admin-related Pydantic schemas for request/response validation.
 """
 
 from datetime import date, datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, validator
 from uuid import UUID
 
@@ -173,13 +173,26 @@ class IDGenerationResponseModel(BaseModel):
     user_type: str
     generated_ids: List[str]
     count: int
+    partial_records: Optional[List[Dict[str, Any]]] = Field(default=[], description="Information about created partial user records")
+    successful_records: Optional[int] = Field(default=0, description="Number of successfully created partial records")
+    failed_records: Optional[int] = Field(default=0, description="Number of failed partial record creations")
 
     class Config:
         schema_extra = {
             "example": {
                 "user_type": "student",
                 "generated_ids": ["22001", "22002", "22003", "22004", "22005"],
-                "count": 5
+                "count": 5,
+                "partial_records": [
+                    {
+                        "user_id": "123e4567-e89b-12d3-a456-426614174000",
+                        "unique_id": "22001",
+                        "user_type": "student",
+                        "status": "partial_record_created"
+                    }
+                ],
+                "successful_records": 5,
+                "failed_records": 0
             }
         }
 
