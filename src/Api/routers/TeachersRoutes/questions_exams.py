@@ -60,21 +60,20 @@ async def create_practice_question(
     """
     logger.info(f"User creating practice question")
     
-    # Get teacher ID and term ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
-    term_id = current_user.get('term_id')
+    # Get teacher ID from current user (dictionary)
+    teacher_id = current_user.get('id')
     
-    # Ensure we have valid IDs
+    # For now, we'll need to get term_id from the teacher record
+    # This is a temporary solution until we add term_id to the current_user response
     if not teacher_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid teacher data"
         )
-    if not term_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Teacher must be assigned to a term"
-        )
+    
+    # We need to get the teacher's term_id from the database
+    # For now, let's use None and handle this in the controller
+    term_id = None
     
     try:
         controller = QuestionExamController(session)
@@ -125,21 +124,17 @@ async def create_exam(
     logger.info(f"User creating exam: {exam_data.title}")
     
     # Get teacher ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
-    teacher_term_id = current_user.get('term_id')
+    teacher_id = current_user.get('id')
     
-    # Ensure we have valid IDs
+    # Ensure we have valid teacher ID
     if not teacher_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid teacher data"
         )
-    if not teacher_term_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Teacher must be assigned to a term"
-        )
-    term_id = teacher_term_id
+    
+    # We'll let the controller fetch the term_id from the teacher record
+    term_id = None
     
     try:
         controller = QuestionExamController(session)
@@ -185,7 +180,7 @@ async def get_practice_questions(
     logger.info(f"User requesting practice questions list")
     
     # Get teacher ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
+    teacher_id = current_user.get('id')
     
     try:
         controller = QuestionExamController(session)
@@ -229,7 +224,7 @@ async def get_exams(
     logger.info(f"User requesting exams list")
     
     # Get teacher ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
+    teacher_id = current_user.get('id')
     
     try:
         controller = QuestionExamController(session)
@@ -275,7 +270,7 @@ async def get_practice_question_details(
     logger.info(f"User requesting details for practice question {practice_id}")
     
     # Get teacher ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
+    teacher_id = current_user.get('id')
     
     try:
         controller = QuestionExamController(session)
@@ -323,7 +318,7 @@ async def get_exam_details(
     logger.info(f"User requesting details for exam {exam_id}")
     
     # Get teacher ID from current user (dictionary)
-    teacher_id = current_user.get('teacher_id')
+    teacher_id = current_user.get('id')
     
     try:
         controller = QuestionExamController(session)

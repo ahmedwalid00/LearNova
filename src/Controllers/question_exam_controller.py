@@ -13,6 +13,7 @@ import logging
 from datetime import date
 
 from src.Models.services.question_service import QuestionService
+from src.Models.repositories.user_repository import TeacherRepository
 from src.Api.Schemes.question_exam_schemes import (
     QuestionPracticeCreate, QuestionPracticeResponse,
     ExamCreate, ExamResponse,
@@ -46,7 +47,7 @@ class QuestionExamController:
         self, 
         request_data: QuestionPracticeCreate, 
         teacher_id: UUID, 
-        term_id: UUID
+        term_id: Optional[UUID] = None
     ) -> QuestionPracticeResponse:
         """
         Handle practice question creation.
@@ -54,12 +55,28 @@ class QuestionExamController:
         Args:
             request_data: Question creation request data
             teacher_id: ID of the teacher creating the question
-            term_id: ID of the current term
+            term_id: ID of the current term (will be fetched if None)
             
         Returns:
             Question creation response
         """
         try:
+            # If term_id is not provided, fetch it from teacher record
+            if term_id is None:
+                teacher_repo = TeacherRepository(self.session)
+                teacher = await teacher_repo.get_by_id(teacher_id)
+                if not teacher:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Teacher not found"
+                    )
+                term_id = teacher.term_id
+                if not term_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Teacher must be assigned to a term"
+                    )
+            
             # Prepare answers data
             answers_data = []
             for answer in request_data.answers:
@@ -114,7 +131,7 @@ class QuestionExamController:
         self, 
         request_data: ExamCreate, 
         teacher_id: UUID, 
-        term_id: UUID
+        term_id: Optional[UUID] = None
     ) -> ExamResponse:
         """
         Handle exam creation with questions.
@@ -122,12 +139,28 @@ class QuestionExamController:
         Args:
             request_data: Exam creation request data
             teacher_id: ID of the teacher creating the exam
-            term_id: ID of the current term
+            term_id: ID of the current term (will be fetched if None)
             
         Returns:
             Exam creation response
         """
         try:
+            # If term_id is not provided, fetch it from teacher record
+            if term_id is None:
+                teacher_repo = TeacherRepository(self.session)
+                teacher = await teacher_repo.get_by_id(teacher_id)
+                if not teacher:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Teacher not found"
+                    )
+                term_id = teacher.term_id
+                if not term_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Teacher must be assigned to a term"
+                    )
+            
             # Prepare questions data
             questions_data = []
             for question in request_data.questions:

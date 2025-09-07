@@ -26,6 +26,7 @@ from src.Models.DBSchemes.Schemes import (
     exam_models,
     lesson,
     question_models,
+    student_response_models,
     subject,
     term_week,
     user_models

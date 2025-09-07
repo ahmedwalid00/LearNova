@@ -18,7 +18,7 @@ class ClassRoom(BaseModel):
 	# Relationships
 	subject = relationship("Subject", back_populates="classrooms", lazy="select")
 	teacher = relationship("Teacher", back_populates="classrooms", lazy="select")
-	term = relationship("AcademicTerm", lazy="select")
+	term = relationship("AcademicTerm", back_populates="classrooms", lazy="select")
 
 	__table_args__ = (
 		Index('ix_classroom_subject_teacher', subject_id, teacher_id),

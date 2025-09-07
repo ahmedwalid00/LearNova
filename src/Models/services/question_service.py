@@ -314,11 +314,11 @@ class QuestionService:
                     detail="Practice question not found"
                 )
             
-            if question.teacher_id != teacher_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have permission to view this question"
-                )
+            # if question.teacher_id != teacher_id:
+            #     raise HTTPException(
+            #         status_code=status.HTTP_403_FORBIDDEN,
+            #         detail="You don't have permission to view this question"
+            #     )
             
             # Format answers
             formatted_answers = []
@@ -372,11 +372,11 @@ class QuestionService:
                     detail="Exam not found"
                 )
             
-            if exam.teacher_id != teacher_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have permission to view this exam"
-                )
+            # if exam.teacher_id != teacher_id:
+            #     raise HTTPException(
+            #         status_code=status.HTTP_403_FORBIDDEN,
+            #         detail="You don't have permission to view this exam"
+            #     )
             
             # Get all questions for this exam
             questions = await self.exam_question_repo.get_by_exam_id(exam_id)

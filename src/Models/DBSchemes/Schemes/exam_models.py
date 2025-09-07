@@ -18,6 +18,7 @@ class Exam(BaseModel):
 	# Question relationship
 	question_exams = relationship("QuestionExam", back_populates="exam", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="exam", lazy="select")
+	student_responses = relationship("ExamQuestionResponse", back_populates="exam", lazy="select")
 
 	__table_args__ = (
 		Index('ix_exam_teacher_date', teacher_id, date),

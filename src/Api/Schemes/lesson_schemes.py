@@ -29,8 +29,8 @@ class LessonUploadRequest(BaseModel):
         example="550e8400-e29b-41d4-a716-446655440000",
         description="UUID of the subject this lesson belongs to"
     )
-    term_id: Optional[UUID] = Field(
-        None, 
+    term_id: UUID = Field(
+        ..., 
         example="550e8400-e29b-41d4-a716-446655440001",
         description="UUID of the academic term (defaults to teacher's current term)"
     )

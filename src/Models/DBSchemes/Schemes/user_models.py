@@ -12,7 +12,6 @@ class Student(BaseModel):
 	email = Column(String(255), nullable=False, unique=True, index=True)
 	is_verified = Column(Boolean, default=False)
 	password_hash = Column(String(255), nullable=False)
-	rating = Column(DECIMAL, nullable=True)
 	admin_id = Column(UUID(as_uuid=True), ForeignKey("admins.admin_id"), nullable=True, index=True)
 	term_id = Column(UUID(as_uuid=True), ForeignKey("academic_terms.term_id"), nullable=True, index=True)
 
@@ -22,12 +21,14 @@ class Student(BaseModel):
 	parent_links = relationship("ParentStudentLink", back_populates="student", lazy="select")
 	classroom_assignments = relationship("ClassRoomStudent", back_populates="student", lazy="select")
 	exam_results = relationship("ExamResult", back_populates="student", lazy="select")
+	practice_responses = relationship("PracticeQuestionResponse", back_populates="student", lazy="select")
+	exam_responses = relationship("ExamQuestionResponse", back_populates="student", lazy="select")
+	ratings = relationship("StudentRating", back_populates="student", lazy="select")
 	# analytics_reports = relationship("AnalyticsReport", back_populates="student", lazy="select")
 
 	__table_args__ = (
 		Index('ix_student_unique_id', unique_id),
 		Index('ix_student_email', email),
-		Index('ix_student_rating', rating),
 	)
 
 	def __repr__(self):

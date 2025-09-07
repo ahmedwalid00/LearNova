@@ -38,7 +38,7 @@ class AuthorizationService:
             result = await session.execute(
                 text("""
                     SELECT student_id, unique_id, name, email, is_verified, 
-                           password_hash, rating, admin_id, term_id
+                           password_hash, admin_id, term_id
                     FROM students 
                     WHERE unique_id = :unique_id
                 """),
@@ -48,7 +48,7 @@ class AuthorizationService:
             result = await session.execute(
                 text("""
                     SELECT teacher_id, unique_id, name, email, is_verified, 
-                           password_hash, rating, subject_id, admin_id, term_id
+                           password_hash, subject_id, admin_id, term_id
                     FROM teachers 
                     WHERE unique_id = :unique_id
                 """),

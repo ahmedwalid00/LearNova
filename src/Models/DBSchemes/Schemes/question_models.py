@@ -16,6 +16,7 @@ class QuestionPractice(BaseModel):
 	teacher = relationship("Teacher", back_populates="question_practices", lazy="select")
 	term = relationship("AcademicTerm", back_populates="question_practices", lazy="select")
 	answers = relationship("Answer", back_populates="question_practice", lazy="select")
+	student_responses = relationship("PracticeQuestionResponse", back_populates="practice_question", lazy="select")
 
 	__table_args__ = (
 		Index('ix_question_practice_teacher_id', teacher_id),
@@ -39,6 +40,7 @@ class QuestionExam(BaseModel):
 	exam = relationship("Exam", back_populates="question_exams", lazy="select")
 	term = relationship("AcademicTerm", back_populates="question_exams", lazy="select")
 	answers = relationship("Answer", back_populates="question_exam", lazy="select")
+	student_responses = relationship("ExamQuestionResponse", back_populates="exam_question", lazy="select")
 
 	__table_args__ = (
 		Index('ix_question_exam_teacher_id', teacher_id),

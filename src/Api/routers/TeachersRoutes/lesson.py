@@ -69,7 +69,7 @@ async def upload_lesson(
     """
     try:
         # Get teacher ID and term_id from current user (current_user is a dict)
-        teacher_id = current_user.get('teacher_id') if isinstance(current_user, dict) else getattr(current_user, 'teacher_id', None)
+        teacher_id = current_user.get('id') if isinstance(current_user, dict) else getattr(current_user, 'id', None)
         teacher_term_id = current_user.get('term_id') if isinstance(current_user, dict) else getattr(current_user, 'term_id', None)
         
         # Verify this is a teacher user
@@ -133,8 +133,7 @@ async def search_lesson_content(
     """
     try:
         # Get teacher ID from current user (current_user is a dict)
-        teacher_id = current_user.get('teacher_id') if isinstance(current_user, dict) else getattr(current_user, 'teacher_id', None)
-        
+        teacher_id = current_user.get('id') if isinstance(current_user, dict) else getattr(current_user, 'id', None)
         if not teacher_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -199,7 +198,7 @@ async def get_lesson_details(
             )
         
         # Get teacher ID from current user (current_user is a dict)
-        teacher_id = current_user.get('teacher_id') if isinstance(current_user, dict) else getattr(current_user, 'teacher_id', None)
+        teacher_id = current_user.get('id') if isinstance(current_user, dict) else getattr(current_user, 'id', None)
         if not teacher_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -267,7 +266,7 @@ async def delete_lesson(
             )
         
         # Get teacher ID from current user (current_user is a dict)
-        teacher_id = current_user.get('teacher_id') if isinstance(current_user, dict) else getattr(current_user, 'teacher_id', None)
+        teacher_id = current_user.get('id') if isinstance(current_user, dict) else getattr(current_user, 'id', None)
         if not teacher_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
