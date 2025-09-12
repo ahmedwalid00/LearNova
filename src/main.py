@@ -7,6 +7,7 @@ from src.Api.routers.GeneralRoutes.auth_route import auth_router
 from src.Api.routers.AdminRoutes import admin_router
 from src.Api.routers.TeachersRoutes.lesson import router as lesson_router
 from src.Api.routers.TeachersRoutes.questions_exams import router as questions_exams_router
+from src.Api.routers.TeachersRoutes.teachers_info import router as teachers_info_router
 from src.Api.routers.StudentRoutes import router as student_router
 from src.Stores.VectorDB.vectordb_factory import VectorDBProviderFactory
 from src.Stores.LLM.llm_facatory import LLMProviderFactory
@@ -76,4 +77,5 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(lesson_router)
 app.include_router(questions_exams_router)
+app.include_router(teachers_info_router)
 app.include_router(student_router)

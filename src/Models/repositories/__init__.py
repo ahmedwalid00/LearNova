@@ -11,6 +11,7 @@ from .lesson_repository import LessonRepository, LessonChunkRepository
 from .exam_repository import ExamRepository, ExamResultRepository
 from .analytics_repository import AnalyticsRepository
 from .classroom_repository import ClassRoomRepository
+from .teacher_rating_repository import TeacherRatingRepository
 
 __all__ = [
     "BaseRepository",
@@ -24,4 +25,5 @@ __all__ = [
     "ExamResultRepository",
     "AnalyticsRepository",
     "ClassRoomRepository",
+    "TeacherRatingRepository",
 ]

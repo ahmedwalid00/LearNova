@@ -2,6 +2,7 @@
 from .base import BaseModel
 from .user_models import Student, Teacher, Parent, Admin
 from .associations import ParentStudentLink
+from .teacher_rating_models import TeacherRating
 
 __all__ = [
     "BaseModel",
@@ -10,4 +11,5 @@ __all__ = [
     "Parent", 
     "Admin",
     "ParentStudentLink",
+    "TeacherRating",
 ]
